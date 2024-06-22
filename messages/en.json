@@ -1,0 +1,43 @@
+{
+  "Header": {
+    "SignIn": "Sign In"
+  },
+  "Login": {
+    "p": "Sign In to your account",
+    "emailInput": "Email address",
+    "passwordInput": "Password",
+    "forgotPassword": "Forgot password"
+  },
+  "Hero": {
+    "h2": "The best Community for universities",
+    "p": "Unlimited academic materials for lifetime access, along with professional tools like time management to increase productivity and live streaming lectures. Furthermore, our students can monetize their creativity. Safe, effective, and more.",
+    "button": "Get Started"
+  },
+  "HeroChatAI": {
+    "h2": "Chat with AI",
+    "p": "Students can caht with AI to benefit from it in everything including studying, asking questions, translation, suggesting creative ideas, and more."
+  },
+  "HeroTime": {
+    "h2": "Time Management For Students",
+    "p": "There is a professional time management system for students that supports focus sessions and daily task management, along with a comprehensive calendar to organize the year, month, week, or day for increased productivity.",
+    "foucs": "Focus Session",
+    "todo": "Todo List",
+    "calendar": "Calendar"
+  },
+  "HeroChatAndVideo": {
+    "h2": "Group Chats And Online Lectures",
+    "p": "Live chat among students themselves, facilitated through dedicated groups for each academic cohort, as well as between students and professors. Additionally, encrypted and secure online lecture broadcasts."
+  },
+  "HeroDocuments": {
+    "h2": "Unlimited Documents",
+    "p": "The professor can create an unlimited number of documents and modify them at any time using the best and easiest professional tools in a short time, in a professional and attractive manner, and store them securely and encrypted."
+  },
+  "HeroStore": {
+    "h2": "Marketplace For Students",
+    "p": "A marketplace for students where each student can sell their own products to everyone and make money securely through it, sharing their achievements and creativity with others."
+  },
+  "Footer": {
+    "copyright": "Copyright",
+    "allrights": "UW | All Rights Reserved"
+  }
+}

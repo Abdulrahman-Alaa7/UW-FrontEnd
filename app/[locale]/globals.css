@@ -97,8 +97,46 @@ input[type="number"] {
 
 .rdp-caption_dropdowns {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
+  gap: 30px;
+}
+
+.rdp-dropdown_month select {
+  border: 1px solid #9e9e9e29;
+  padding: 10px;
+  border-radius: calc(var(--radius) - 2px);
+  outline: none;
+  cursor: pointer;
+}
+
+.rdp-dropdown_year select {
+  border: 1px solid #9e9e9e29;
+  padding: 10px;
+  border-radius: calc(var(--radius) - 2px);
+  outline: none;
+  cursor: pointer;
+}
+.selected-flag,
+.selected-flag:hover,
+.react-tel-input .selected-flag:focus {
+  background-color: var(--background) !important;
+}
+.react-tel-input .country-list .country:hover {
+  background-color: #9e9e9e29 !important;
+}
+
+.react-tel-input .country-list .country[data-country-code="il"] {
+  display: none !important;
+}
+
+.react-tel-input .country-list .country {
+  display: flex !important;
+  align-items: center !important;
+  gap: 10px !important;
+}
+.react-tel-input .country-list .country.highlight {
+  background-color: #9e9e9e29 !important;
 }
 /* End Date Picker Style */
 

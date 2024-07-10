@@ -1,23 +1,20 @@
 "use client";
-import React, { useEffect } from "react";
-import { Provider } from "react-redux";
-import { store } from "../../redux/store";
-import { apiSlice } from "../../redux/features/api/apiSlice";
+import React from "react";
+import { client } from "../../graphql/gql.setup";
+import { ApolloProvider } from "@apollo/client";
+import { ThemeProvider } from "./ThemeProvider";
 
-interface ProviderProps {
-  children: any;
-}
-
-export function Providers({ children }: ProviderProps) {
-  useEffect(() => {
-    const initializeApp = async () => {
-      await store.dispatch(
-        apiSlice.endpoints.loadUser.initiate({}, { forceRefetch: true })
-      );
-    };
-
-    initializeApp();
-  }, []);
-
-  return <Provider store={store}>{children}</Provider>;
+export function Providers({ children }: { children: React.ReactNode }) {
+  return (
+    <ApolloProvider client={client}>
+      <ThemeProvider
+        attribute="class"
+        defaultTheme="system"
+        enableSystem
+        disableTransitionOnChange
+      >
+        {children}
+      </ThemeProvider>
+    </ApolloProvider>
+  );
 }

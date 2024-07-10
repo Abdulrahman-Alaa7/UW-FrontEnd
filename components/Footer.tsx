@@ -7,7 +7,7 @@ const Footer = (props: Props) => {
   const t = useTranslations("Footer");
 
   return (
-    <div
+    <footer
       className={`text-center p-4 relative overflow-hidden bg-[#f5f5ff] dark:bg-background`}
     >
       <div
@@ -15,7 +15,7 @@ const Footer = (props: Props) => {
       >
         {t("copyright")} &copy; {new Date().getFullYear()} {t("allrights")}
       </div>
-    </div>
+    </footer>
   );
 };
 

@@ -8,6 +8,12 @@
     "passwordInput": "Password",
     "forgotPassword": "Forgot password"
   },
+  "ForgotPassword": {
+    "h1": "Forgot Password",
+    "p": "Enter Your Email",
+    "forgotSubmit": "Submit",
+    "orBtn": "OR"
+  },
   "Hero": {
     "h2": "The best Community for universities",
     "p": "Unlimited academic materials for lifetime access, along with professional tools like time management to increase productivity and live streaming lectures. Furthermore, our students can monetize their creativity. Safe, effective, and more.",

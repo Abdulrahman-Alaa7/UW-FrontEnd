@@ -4,7 +4,6 @@ import { Button } from "../../../components/ui/button";
 import { useForm, SubmitHandler } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useSelector } from "react-redux";
 import {
   Form,
   FormControl,
@@ -25,8 +24,8 @@ import {
 type Props = {};
 
 const EmailAndPhone = (props: Props) => {
-  const { user } = useSelector((state: any) => state.auth);
   const [showPassword, setShowPassword] = useState(false);
+  let user: any = false;
 
   const EmailAndPhoneSchema = z.object({
     email: z

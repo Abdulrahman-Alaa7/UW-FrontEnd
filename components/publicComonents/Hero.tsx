@@ -8,12 +8,13 @@ import ChooseCollage from "../../public/assets/Choose-collage.png";
 import GraduationComplete from "../../public/assets/graduation-complete.png";
 import { useTranslations } from "next-intl";
 import Login from "./Login";
-import { useSelector } from "react-redux";
+import useUser from "../../hooks/useUser";
 
 type Props = {};
 
 const Hero = (props: Props) => {
-  const { user } = useSelector((state: any) => state.auth);
+  const { user, loading } = useUser();
+
   const t = useTranslations("Header");
   const tHero = useTranslations("Hero");
   const tLogin = useTranslations("Login");

@@ -1,7 +1,6 @@
 import { Inter } from "next/font/google";
 import { Cairo } from "next/font/google";
 import "./globals.css";
-import { ThemeProvider } from "../utils/ThemeProvider";
 import { notFound } from "next/navigation";
 import { useLocale } from "next-intl";
 import { Providers } from "../utils/Providers";
@@ -45,18 +44,11 @@ export default async function RootLayout({
         }`}
       >
         <Providers>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-            disableTransitionOnChange
-          >
-            <NextIntlClientProvider messages={messages}>
-              {children}
-            </NextIntlClientProvider>
-          </ThemeProvider>
-          <Toaster position="top-center" richColors />
+          <NextIntlClientProvider messages={messages}>
+            {children}
+          </NextIntlClientProvider>
         </Providers>
+        <Toaster position="top-center" richColors />
       </body>
     </html>
   );

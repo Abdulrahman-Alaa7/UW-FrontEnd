@@ -2,7 +2,7 @@
 import { useState } from "react";
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { Input } from "../../../../components/ui/input";
 import { Button } from "../../../../components/ui/button";
 import {
@@ -26,24 +26,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../../../../components/ui/select";
-
 import OTP from "../../OTP";
 import { toast } from "sonner";
+import { usePathname } from "next/navigation";
+import { useLocale } from "next-intl";
+import { useMutation } from "@apollo/client";
+import { REGISTER_USER } from "../../../../graphql/actions/register.action";
+import MainLoading from "../../../../components/ui/main-loading";
+import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
 
 type Props = {
   initialData?: any | null;
 };
 
 const AddNewManager: React.FC<Props> = ({ initialData }) => {
-  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [open, setOpen] = useState(false);
-
-  const removeUndefinedKeys = (obj: any) => {
-    return Object.fromEntries(
-      Object.entries(obj).filter(([_, v]) => v !== undefined)
-    );
-  };
-
+  const path = usePathname();
+  const locale = useLocale();
+  const [registerUserMutation, { loading }] = useMutation(REGISTER_USER);
+  const [activationToken, setactivationToken] = useState("");
   const action = initialData ? "Save changes" : "Create";
 
   const defaultValues = initialData
@@ -54,15 +56,22 @@ const AddNewManager: React.FC<Props> = ({ initialData }) => {
         email: "",
         password: "",
         gernder: "",
+        role: `${
+          path == `/${locale}/dashboard/managers/new`
+            ? `Manager`
+            : path == `/${locale}/dashboard/universities/new`
+            ? `University`
+            : `User`
+        }`,
       };
 
   const profileSchema = z.object({
-    first_name: z
+    name: z
       .string()
-      .min(3, { message: "First Name must be at least 3 characters" }),
-    last_name: z
-      .string()
-      .min(3, { message: "Last Name must be at least 3 characters" }),
+      .min(3, { message: "Name must be at least 3 characters" })
+      .max(50, {
+        message: "Name must not be longer than 50 characters.",
+      }),
     email: z
       .string()
       .min(1, {
@@ -75,8 +84,8 @@ const AddNewManager: React.FC<Props> = ({ initialData }) => {
       ? z.string().optional()
       : z
           .string()
-          .min(7, {
-            message: "Password must be at least 7 characters",
+          .min(8, {
+            message: "Password must be at least 8 characters",
           })
           .max(35, {
             message: "The password must not exceed 35 characters",
@@ -86,13 +95,13 @@ const AddNewManager: React.FC<Props> = ({ initialData }) => {
     }),
     role: z
       .enum([
-        "manager",
-        "university",
-        "faculty",
-        "department",
-        "professor",
-        "student",
-        "user",
+        "Manager",
+        "University",
+        "Faculty",
+        "Department",
+        "Professor",
+        "Student",
+        "User",
       ])
       .optional(),
     status: z.enum(["active", "hold"]).default("active"),
@@ -107,25 +116,25 @@ const AddNewManager: React.FC<Props> = ({ initialData }) => {
 
   const onSubmit = async (data: AddNewUserValues) => {
     try {
-      const cleanedData = removeUndefinedKeys(data);
-      setLoading(true);
       if (initialData) {
         // await axios.post(`/api/products/edit-product/${initialData._id}`, data);
-        await console.log("success Updated", cleanedData);
+        await console.log("success Updated", data);
         toast.success("User Updated Successfully");
       } else {
-        // const res = await axios.post(`/api/products/create-product`, data);
-        // console.log("product", res);
+        const response = await registerUserMutation({
+          variables: data,
+        });
+        localStorage.setItem(
+          "activation_token",
+          response.data.register.activation_token
+        );
+        toast.success("Please check your email to activate your account!");
         setOpen(true);
-        await console.log("success added", cleanedData);
+
+        form.reset(defaultValues);
       }
-      // router.refresh();
-      // router.push(`/dashboard/menu`);
-      // console.log("Error");
     } catch (error: any) {
-      console.log("Error");
-    } finally {
-      setLoading(false);
+      toast.error(error.message);
     }
   };
 
@@ -140,34 +149,18 @@ const AddNewManager: React.FC<Props> = ({ initialData }) => {
           <div className="md:grid md:grid-cols-3 gap-4">
             <FormField
               control={form.control}
-              name="first_name"
+              name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>First Name</FormLabel>
+                  <FormLabel>Name</FormLabel>
                   <FormControl>
-                    <Input
-                      disabled={loading}
-                      placeholder="Abdulrahman"
-                      {...field}
-                    />
+                    <Input disabled={loading} placeholder="Name" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="last_name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Last Name</FormLabel>
-                  <FormControl>
-                    <Input disabled={loading} placeholder="Alaa" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+
             <FormField
               control={form.control}
               name="email"
@@ -178,7 +171,7 @@ const AddNewManager: React.FC<Props> = ({ initialData }) => {
                     <Input
                       type="email"
                       disabled={loading}
-                      placeholder="abdulrahmanalaa@uw.com"
+                      placeholder="email@uw.com"
                       {...field}
                     />
                   </FormControl>
@@ -193,12 +186,32 @@ const AddNewManager: React.FC<Props> = ({ initialData }) => {
                 <FormItem className={`${initialData && "!hidden"}`}>
                   <FormLabel>Password</FormLabel>
                   <FormControl>
-                    <Input
-                      type="password"
-                      disabled={loading}
-                      placeholder="password"
-                      {...field}
-                    />
+                    <div className="relative">
+                      <Input
+                        type={!showPassword ? "password" : "text"}
+                        disabled={loading}
+                        placeholder="password"
+                        {...field}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="absolute top-1/2 transform -translate-y-1/2 right-2 z-1 !p-1 rounded-full"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? (
+                          <AiOutlineEye
+                            size={25}
+                            className="text-black dark:text-white"
+                          />
+                        ) : (
+                          <AiOutlineEyeInvisible
+                            size={25}
+                            className="text-black dark:text-white"
+                          />
+                        )}
+                      </Button>
+                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -267,13 +280,13 @@ const AddNewManager: React.FC<Props> = ({ initialData }) => {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="manager">Manager</SelectItem>
-                      <SelectItem value="university">University</SelectItem>
-                      <SelectItem value="faculty">Faculty</SelectItem>
-                      <SelectItem value="department">Department</SelectItem>
-                      <SelectItem value="professor">Professor</SelectItem>
-                      <SelectItem value="student">Student</SelectItem>
-                      <SelectItem value="user">User</SelectItem>
+                      <SelectItem value="Manager">Manager</SelectItem>
+                      <SelectItem value="University">University</SelectItem>
+                      <SelectItem value="Faculty">Faculty</SelectItem>
+                      <SelectItem value="Department">Department</SelectItem>
+                      <SelectItem value="Professor">Professor</SelectItem>
+                      <SelectItem value="Student">Student</SelectItem>
+                      <SelectItem value="User">User</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -317,7 +330,7 @@ const AddNewManager: React.FC<Props> = ({ initialData }) => {
             className="mx-auto w-[250px] flex justify-center items-center"
             type="submit"
           >
-            {action}
+            {loading ? <MainLoading /> : `${action}`}
           </Button>
           <FormDescription
             className={`mx-auto w-[95%] flex justify-center items-center !mt-3 ${

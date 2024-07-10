@@ -1,13 +1,14 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import { ChevronLeft, ChevronRight } from "lucide-react"
-import { DayPicker } from "react-day-picker"
+import * as React from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { DayPicker } from "react-day-picker";
+import { ar, enUS } from "date-fns/locale";
 
-import { cn } from "@/lib/utils"
-import { buttonVariants } from "@/components/ui/button"
-
-export type CalendarProps = React.ComponentProps<typeof DayPicker>
+import { cn } from "@/lib/utils";
+import { buttonVariants } from "@/components/ui/button";
+import { useLocale } from "next-intl";
+export type CalendarProps = React.ComponentProps<typeof DayPicker>;
 
 function Calendar({
   className,
@@ -15,14 +16,27 @@ function Calendar({
   showOutsideDays = true,
   ...props
 }: CalendarProps) {
+  const locale = useLocale();
+  let langa: any;
+  let direc: any;
+  if (locale === "en") {
+    langa = enUS;
+    direc = "ltr";
+  } else {
+    langa = ar;
+    direc = "rtl";
+  }
+
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
       className={cn("p-3", className)}
+      locale={langa}
+      dir={`${direc}`}
       classNames={{
         months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
         month: "space-y-4",
-        caption: "flex justify-center pt-1 relative items-center",
+        caption: "flex justify-center items-center relative pt-1 rounded-md ",
         caption_label: "text-sm font-medium",
         nav: "space-x-1 flex items-center",
         nav_button: cn(
@@ -32,7 +46,7 @@ function Calendar({
         nav_button_previous: "absolute left-1",
         nav_button_next: "absolute right-1",
         table: "w-full border-collapse space-y-1",
-        head_row: "flex",
+        head_row: "flex ",
         head_cell:
           "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]",
         row: "flex w-full mt-2",
@@ -59,8 +73,8 @@ function Calendar({
       }}
       {...props}
     />
-  )
+  );
 }
-Calendar.displayName = "Calendar"
+Calendar.displayName = "Calendar";
 
-export { Calendar }
+export { Calendar };

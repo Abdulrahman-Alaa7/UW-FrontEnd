@@ -1,8 +1,8 @@
 "use client";
-import { useSelector } from "react-redux";
+import useUser from "./useUser";
 
 export default function UserAuth() {
-  const { user } = useSelector((state: any) => state.auth);
+  const { user } = useUser();
 
   if (user) {
     return true;

@@ -1,11 +1,10 @@
 "use client";
-import React, { FC } from "react";
+import React, { FC, useEffect, useState } from "react";
 import { Link } from "../navigation";
 import { ModeToggle } from "../app/utils/ModeToggle";
 import LangMenu from "../app/utils/LangMenu";
 import Login from "./publicComonents/Login";
 import { useTranslations } from "next-intl";
-import { useSelector } from "react-redux";
 import { UserNav } from "./PrivateComponents/layout/UserNav";
 import { Button } from "./ui/button";
 import { LayoutDashboard } from "lucide-react";
@@ -13,17 +12,25 @@ import Notification from "./PrivateComponents/layout/Notification";
 import Image from "next/image";
 import LogoLight from "../public/assets/logo-light.png";
 import LogoDark from "../public/assets/logo-dark.png";
+import useUser from "../hooks/useUser";
 
 type Props = {};
 
 const HeaderPub: FC<Props> = () => {
-  const { user } = useSelector((state: any) => state.auth);
+  const { user, loading } = useUser();
+  const [signedIn, setsignedIn] = useState(false);
   const t = useTranslations("Header");
   const tHero = useTranslations("Hero");
   const tLogin = useTranslations("Login");
 
+  useEffect(() => {
+    if (!loading) {
+      setsignedIn(!!user);
+    }
+  }, [loading, user]);
+
   return (
-    <div
+    <header
       className={`sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60`}
     >
       <nav
@@ -50,7 +57,7 @@ const HeaderPub: FC<Props> = () => {
               </Link>
             </div>
             <div className="flex items-center justify-center gap-1 800px:gap-2">
-              {user ? (
+              {signedIn ? (
                 <>
                   <Link href={`/dashboard`}>
                     <Button
@@ -70,22 +77,14 @@ const HeaderPub: FC<Props> = () => {
                   {" "}
                   <ModeToggle />
                   <LangMenu />
-                  <Login
-                    component="Login"
-                    btnSignIn={t("SignIn")}
-                    logP={tLogin("p")}
-                    emailIn={tLogin("emailInput")}
-                    passIn={tLogin("passwordInput")}
-                    herobtn={tHero("button")}
-                    forgotbtn={tLogin("forgotPassword")}
-                  />
+                  <Login component="Login" />
                 </>
               )}
             </div>
           </div>
         </div>
       </nav>
-    </div>
+    </header>
   );
 };
 

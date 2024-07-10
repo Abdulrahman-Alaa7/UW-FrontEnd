@@ -1,16 +1,6 @@
 "use client";
-
 import React, { FC, useState } from "react";
 import { Button } from "../../components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "../../components/ui/dialog";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -32,6 +22,10 @@ import { Modal } from "../ui/modal";
 import { useRouter } from "../../navigation";
 import { usePathname } from "next/navigation";
 import { toast } from "sonner";
+import { useMutation } from "@apollo/client";
+import { ACTIVATE_USER } from "../../graphql/actions/activation.action";
+import MainLoading from "../ui/main-loading";
+
 type Props = {
   isOpen: boolean;
   setOpen: (open: boolean) => void;
@@ -39,9 +33,9 @@ type Props = {
 };
 
 const OTP: FC<Props> = ({ isOpen, onClose, setOpen }) => {
-  const [loading, setLoading] = useState(false);
   const router = useRouter();
   const path = usePathname();
+  const [ActivateUser, { loading }] = useMutation(ACTIVATE_USER);
 
   const OTPSchema = z.object({
     pin: z.string().min(6, {
@@ -56,28 +50,32 @@ const OTP: FC<Props> = ({ isOpen, onClose, setOpen }) => {
     },
   });
 
-  function onSubmit(data: z.infer<typeof OTPSchema>) {
+  const onSubmit = async (data: z.infer<typeof OTPSchema>) => {
     try {
-      setLoading(true);
-      // await axios.post(`/api/products/edit-product/${initialData._id}`, data);
-      // const res = await axios.post(`/api/products/create-product`, data);
-      // console.log("product", res);
-      console.log("success activate", data);
-      toast.success("User Created Successfully");
+      const activationToken = localStorage.getItem("activation_token");
+
+      const ActivationData = {
+        activationToken,
+        activationCode: data.pin,
+      };
+
+      await ActivateUser({
+        variables: ActivationData,
+      });
+
       setOpen(false);
-      // router.refresh();
+      toast.success("Account activated successfully!");
+      form.reset();
+      router.refresh();
       if (path.includes("managers")) {
         router.push(`/dashboard/managers`);
       } else if (path.includes("universities")) {
         router.push(`/dashboard/universities`);
       }
-      // console.log("Error");
     } catch (error: any) {
-      console.log("Error");
-    } finally {
-      setLoading(false);
+      toast.error(error.message);
     }
-  }
+  };
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
@@ -112,7 +110,9 @@ const OTP: FC<Props> = ({ isOpen, onClose, setOpen }) => {
                 </FormItem>
               )}
             />
-            <Button type="submit">Submit</Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? <MainLoading /> : `Submit`}
+            </Button>
           </form>
         </Form>
       </div>

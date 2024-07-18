@@ -2,11 +2,12 @@
 import { useEffect, useState } from "react";
 import { Button } from "./button";
 import { Modal } from "./modal";
+import MainLoading from "./main-loading";
 
 interface AlertModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  onConfirm: (data?: any) => void;
   loading: boolean;
 }
 
@@ -38,7 +39,7 @@ export const AlertModal: React.FC<AlertModalProps> = ({
           Cancel
         </Button>
         <Button disabled={loading} variant="destructive" onClick={onConfirm}>
-          Delete
+          {loading ? <MainLoading /> : `Delete`}
         </Button>
       </div>
     </Modal>

@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import { useMutation } from "@apollo/client";
 import { ACTIVATE_USER } from "../../graphql/actions/activation.action";
 import MainLoading from "../ui/main-loading";
+import { refetchAllUserData } from "@/hooks/refetchAllUsers";
 
 type Props = {
   isOpen: boolean;
@@ -65,6 +66,7 @@ const OTP: FC<Props> = ({ isOpen, onClose, setOpen }) => {
 
       setOpen(false);
       toast.success("Account activated successfully!");
+      refetchAllUserData();
       form.reset();
       router.refresh();
       if (path.includes("managers")) {

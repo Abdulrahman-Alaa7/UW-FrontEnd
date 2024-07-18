@@ -8,7 +8,6 @@ export const UPDATE_PROFILE_USER: DocumentNode = gql`
     $phone_number: Float
     $address: String
     $dob: DateTime
-    $image: Upload
   ) {
     updateProfile(
       updateProfileUserDto: {
@@ -18,7 +17,6 @@ export const UPDATE_PROFILE_USER: DocumentNode = gql`
         phone_number: $phone_number
         address: $address
         dob: $dob
-        image: $image
       }
     ) {
       user {

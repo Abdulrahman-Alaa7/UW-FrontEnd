@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useFieldArray, useForm } from "react-hook-form";
 import { date, z } from "zod";
@@ -17,7 +17,7 @@ import {
 import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
 import { Card, CardContent } from "../ui/card";
-import { CalendarIcon, Plus, Trash } from "lucide-react";
+import { CalendarIcon, Trash } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Calendar } from "../ui/calendar";
 import { format, toDate } from "date-fns";
@@ -31,22 +31,22 @@ import PhoneInput from "react-phone-input-2";
 import "react-phone-input-2/lib/style.css";
 import ar from "react-phone-input-2/lang/ar.json";
 import { useLocale } from "next-intl";
-import { useMutation } from "@apollo/client";
+import { useMutation, useQuery } from "@apollo/client";
 import { UPDATE_PROFILE_USER } from "../../graphql/actions/updateProfileUser.action";
 import { toast } from "sonner";
 import MainLoading from "../ui/main-loading";
-import { client } from "../../graphql/gql.setup";
-import { GET_USER } from "../../graphql/actions/getUser.action";
+import EditProfilePic from "./EditProfilePic";
+import { refetchUserData } from "../../hooks/refetchUserData";
+import Cropper, { ReactCropperElement } from "react-cropper";
+import { UPDATE_USER_PROFILE_PIC } from "../../graphql/actions/updateProfilePic";
 
 export function ProfileTap() {
-  const [loadingAlert, setLoadingAlert] = useState(false);
   const [open, setOpen] = useState(false);
   const lang = useLocale();
   const { user, loading: LoadingUser } = useUser();
   const [updateProfile, { loading }] = useMutation(UPDATE_PROFILE_USER);
   const [imageEdit, setImageEdit] = useState<any>(null);
-
-  const onConfirm = async () => {};
+  const cropperRef = useRef<ReactCropperElement>(null);
 
   let userPhone = user.phone_number;
 
@@ -59,7 +59,7 @@ export function ProfileTap() {
       .max(50, {
         message: "Name must not be longer than 50 characters.",
       }),
-    image: z.instanceof(File).optional(),
+    // image: z.instanceof(File).optional(),
     bio: z
       .string()
       .max(160, {
@@ -99,9 +99,10 @@ export function ProfileTap() {
     dob: user?.dob === null ? undefined : toDate(user?.dob),
     phone_number: userPhone?.toString(),
     address: user?.address === null ? undefined : user?.address,
-    image: user?.image,
+    // image: user.image,
     // urls: [{ url: "" }],
   };
+
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues,
@@ -121,12 +122,6 @@ export function ProfileTap() {
     ) as ProfileFormValues;
   }
 
-  const refetchData = async () => {
-    await client.refetchQueries({
-      include: [GET_USER],
-    });
-  };
-
   const onSubmit = async (data: ProfileFormValues) => {
     try {
       const ProfileData: any = {
@@ -136,10 +131,11 @@ export function ProfileTap() {
         phone_number: Number(data?.phone_number),
         dob: data?.dob,
         address: data?.address,
-        image: data.image,
+        // image: data.image,
       };
 
       const newData = filterUndefinedValues(ProfileData);
+      // console.log(newData);
 
       await updateProfile({
         variables: newData,
@@ -147,7 +143,35 @@ export function ProfileTap() {
 
       toast.success("User updated successfully");
       setImageEdit(null);
-      refetchData();
+      refetchUserData();
+    } catch (error: any) {
+      console.error(error);
+
+      toast.error(error.message);
+    }
+  };
+
+  const [updateUserProfilePic, { loading: loadingDeletePic }] = useMutation(
+    UPDATE_USER_PROFILE_PIC
+  );
+
+  const onConfirm = async () => {
+    try {
+      const ImageData: any = {
+        image: null,
+      };
+
+      const newData = filterUndefinedValues(ImageData);
+
+      await updateUserProfilePic({
+        variables: newData,
+      });
+
+      toast.success("User Image Deleted successfully");
+      setImageEdit(null);
+      refetchUserData();
+      setImageEdit(null);
+      setOpen(!open);
     } catch (error: any) {
       console.error(error);
 
@@ -161,7 +185,7 @@ export function ProfileTap() {
         isOpen={open}
         onClose={() => setOpen(false)}
         onConfirm={onConfirm}
-        loading={loadingAlert}
+        loading={loadingDeletePic}
       />
       <CardContent className="space-y-2 py-4">
         <Form {...form}>
@@ -169,57 +193,16 @@ export function ProfileTap() {
             <div className="w-full flex justify-center items-center gap-2">
               <div className="relative">
                 <Image
-                  src={
-                    imageEdit !== null
-                      ? imageEdit
-                      : user?.image
-                      ? user.image
-                      : Avatar
-                  }
+                  src={user?.image ? user.image : Avatar}
                   alt={user?.name}
-                  className={`w-[120px] h-[120px] rounded-full cursor-pointer border-[3px] border-border ${
-                    imageEdit !== null && "border-red-600 border-dashed"
-                  }`}
+                  className={`w-[120px] h-[120px]  rounded-full cursor-pointer border-[3px] border-border p-1 `}
                   width={120}
                   height={120}
                 />
                 <div className="flex justify-center items-center mt-2">
-                  <FormField
-                    control={form.control}
-                    name="image"
-                    render={({ field }) => (
-                      <FormItem>
-                        <div className="flex justify-center items-center mx-2">
-                          {" "}
-                          <FormLabel
-                            htmlFor="image"
-                            className="p-[10px] border border-border rounded-md cursor-pointer transition-all hover:bg-muted"
-                          >
-                            Edit image
-                          </FormLabel>
-                          <Input
-                            id="image"
-                            type="file"
-                            accept="image/jpeg, image/jpg, image/png"
-                            onChange={(e: any) => {
-                              const file = e.target.files[0];
-                              field.onChange(file);
-                              const fileReader = new FileReader();
-                              fileReader.onload = () => {
-                                if (fileReader.readyState === 2) {
-                                  const avatar = fileReader.result;
-                                  setImageEdit(avatar);
-                                }
-                              };
-                              fileReader.readAsDataURL(e.target.files[0]);
-                            }}
-                            className="hidden"
-                          />
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  <div className="flex justify-center items-center mx-2">
+                    <EditProfilePic />
+                  </div>
                   <div className="flex justify-center items-center gap-2">
                     <Button
                       type="button"
@@ -242,7 +225,11 @@ export function ProfileTap() {
                 <FormItem>
                   <FormLabel> Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="Abdulrahman" {...field} />
+                    <Input
+                      placeholder="Abdulrahman"
+                      {...field}
+                      disabled={loading}
+                    />
                   </FormControl>
                   <FormDescription>
                     This is your public display name. It must be your real name.
@@ -263,6 +250,7 @@ export function ProfileTap() {
                       placeholder="Tell us a little bit about yourself"
                       className="resize-none"
                       {...field}
+                      disabled={loading}
                     />
                   </FormControl>
                   <FormDescription>
@@ -288,6 +276,7 @@ export function ProfileTap() {
                             "w-[240px] pl-3 text-left font-normal",
                             !field.value && "text-muted-foreground"
                           )}
+                          disabled={loading}
                         >
                           {field.value ? (
                             format(field.value, "P")
@@ -331,10 +320,11 @@ export function ProfileTap() {
                       onValueChange={field.onChange}
                       defaultValue={field.value}
                       className="flex  justify-start space-x-1"
+                      disabled={loading}
                     >
                       <FormItem className="flex items-center space-x-3 space-y-0">
                         <FormControl>
-                          <RadioGroupItem value="male" />
+                          <RadioGroupItem value="male" disabled={loading} />
                         </FormControl>
                         <FormLabel className="font-normal cursor-pointer">
                           Male
@@ -342,7 +332,7 @@ export function ProfileTap() {
                       </FormItem>
                       <FormItem className="flex items-center space-x-3 space-y-0">
                         <FormControl>
-                          <RadioGroupItem value="female" />
+                          <RadioGroupItem value="female" disabled={loading} />
                         </FormControl>
                         <FormLabel className="font-normal cursor-pointer">
                           Female{" "}
@@ -350,7 +340,7 @@ export function ProfileTap() {
                       </FormItem>
                       <FormItem className="flex items-center space-x-3 space-y-0">
                         <FormControl>
-                          <RadioGroupItem value="org" />
+                          <RadioGroupItem value="org" disabled={loading} />
                         </FormControl>
                         <FormLabel className="font-normal cursor-pointer">
                           Org{" "}
@@ -379,6 +369,7 @@ export function ProfileTap() {
                         buttonClass="!bg-background hover:!bg-background focus:!bg-background !border !border-input"
                         dropdownClass="!bg-background hover:bg-blue-500"
                         searchClass="!bg-background"
+                        disabled={loading}
                       />
                     ) : (
                       <PhoneInput
@@ -391,6 +382,7 @@ export function ProfileTap() {
                         buttonClass="!bg-background hover:!bg-background focus:!bg-background !border !border-input"
                         dropdownClass="!bg-background hover:bg-blue-500"
                         searchClass="!bg-background"
+                        disabled={loading}
                       />
                     )}
                   </FormControl>
@@ -408,7 +400,11 @@ export function ProfileTap() {
                 <FormItem>
                   <FormLabel> Adderss</FormLabel>
                   <FormControl>
-                    <Input placeholder="Your Address" {...field} />
+                    <Input
+                      placeholder="Your Address"
+                      {...field}
+                      disabled={loading}
+                    />
                   </FormControl>
                   <FormDescription>
                     This is your Address display address. It must be your real

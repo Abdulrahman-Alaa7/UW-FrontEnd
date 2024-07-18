@@ -29,6 +29,7 @@ import {
   X,
   UserRoundCog,
   University,
+  UsersRound,
 } from "lucide-react";
 
 export type Icon = LucideIcon;
@@ -63,4 +64,5 @@ export const Icons = {
   check: Check,
   managers: UserRoundCog,
   university: University,
+  allUsers: UsersRound,
 };

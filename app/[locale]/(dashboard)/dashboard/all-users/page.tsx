@@ -1,12 +1,8 @@
 "use client";
 import React from "react";
 import BreadCrumb from "../../../../../components/BreadCrumb";
-import { buttonVariants } from "../../../../../components/ui/button";
 import Heading from "../../../../utils/Heading";
 import { Separator } from "../../../../../components/ui/separator";
-import { cn } from "../../../../../lib/utils";
-import { Plus } from "lucide-react";
-import { Link } from "../../../../../navigation";
 import { HeadPage } from "../../../../../components/HeadPage";
 import { ScrollArea } from "../../../../../components/ui/scroll-area";
 import { CardContent } from "../../../../../components/ui/card";
@@ -23,21 +19,17 @@ type paramsProps = {
 };
 const Page = ({ searchParams }: paramsProps) => {
   const breadcrumbItems = [
-    { title: "Universities", link: "/dashboard/universities" },
+    { title: "All Users", link: "/dashboard/all-users" },
   ];
 
   const { data, loading: loadingUsers } = useQuery(GET_ALL_USERS);
 
   const allUsers = data?.getUsers;
 
-  const UniversitiessUsers = allUsers?.filter(
-    (user: any) => user.role === "University"
-  );
-
   return (
     <>
       <Heading
-        title="Universities Area"
+        title="All Users Area"
         description="Platform to help students."
         keywords="ELearning, LMS and more."
       />
@@ -47,32 +39,19 @@ const Page = ({ searchParams }: paramsProps) => {
 
           <div className="flex items-start justify-between">
             <HeadPage
-              title={`Universities ${
-                !loadingUsers && `(${UniversitiessUsers?.length})`
-              } `}
-              description="Manage Universities from here."
+              title={`All users ${!loadingUsers && `(${allUsers?.length})`}`}
+              description="Manage All users from here."
             />
-
-            <Link
-              href={"/dashboard/universities/new"}
-              className={cn(buttonVariants({ variant: "default" }))}
-            >
-              <Plus className="mr-2 h-4 w-4" /> Add New
-            </Link>
           </div>
           <Separator />
         </div>
-
-        <CardContent className="w-[390px] sm:w-[550px]  xl:w-full mx-auto">
+        <CardContent className="w-[390px] sm:w-[550px]  xl:w-full mx-auto ">
           {loadingUsers ? (
             <div className="flex justify-center items-center">
               <MainLoading />
             </div>
           ) : (
-            <DataManagerTable
-              data={UniversitiessUsers}
-              columns={tManagerColumns}
-            />
+            <DataManagerTable data={allUsers} columns={tManagerColumns} />
           )}
         </CardContent>
       </ScrollArea>

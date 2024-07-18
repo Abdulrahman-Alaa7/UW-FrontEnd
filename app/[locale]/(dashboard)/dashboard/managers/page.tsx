@@ -1,24 +1,20 @@
+"use client";
 import React from "react";
 import BreadCrumb from "../../../../../components/BreadCrumb";
-import { Mancolumns } from "../../../../../components/PrivateComponents/tables/man-table/man-columns";
-import { ManTable } from "../../../../../components/PrivateComponents/tables/man-table/man-table";
 import { buttonVariants } from "../../../../../components/ui/button";
 import Heading from "../../../../utils/Heading";
 import { Separator } from "../../../../../components/ui/separator";
-import { Employee } from "../../../../../constants/data";
 import { cn } from "../../../../../lib/utils";
 import { Plus } from "lucide-react";
 import { Link } from "../../../../../navigation";
 import { HeadPage } from "../../../../../components/HeadPage";
 import { ScrollArea } from "../../../../../components/ui/scroll-area";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "../../../../../components/ui/card";
-
+import { CardContent } from "../../../../../components/ui/card";
+import { useQuery } from "@apollo/client";
+import { GET_ALL_USERS } from "../../../../../graphql/actions/queries/GetAllUsers";
+import { DataManagerTable } from "../../../../../components/PrivateComponents/managerCom/tables/managerTable/components/t-manager-table";
+import { tManagerColumns } from "../../../../../components/PrivateComponents/managerCom/tables/managerTable/components/t-manager-columns";
+import MainLoading from "../../../../../components/ui/main-loading";
 const breadcrumbItems = [{ title: "Managers", link: "/dashboard/managers" }];
 
 type paramsProps = {
@@ -27,20 +23,15 @@ type paramsProps = {
   };
 };
 
-export default async function Page({ searchParams }: paramsProps) {
-  const page = Number(searchParams.page) || 1;
-  const pageLimit = Number(searchParams.limit) || 10;
-  const country = searchParams.search || null;
-  const offset = (page - 1) * pageLimit;
+const Page = ({ searchParams }: paramsProps) => {
+  const { data, loading: loadingUsers } = useQuery(GET_ALL_USERS);
 
-  const res = await fetch(
-    `https://api.slingacademy.com/v1/sample-data/users?offset=${offset}&limit=${pageLimit}` +
-      (country ? `&search=${country}` : "")
+  const allUsers = data?.getUsers;
+
+  const managersUsers = allUsers?.filter(
+    (user: any) => user.role === "Manager"
   );
-  const employeeRes = await res.json();
-  const totalUsers = employeeRes.total_users; //1000
-  const pageCount = Math.ceil(totalUsers / pageLimit);
-  const employee: Employee[] = employeeRes.users;
+
   return (
     <>
       <Heading
@@ -54,7 +45,9 @@ export default async function Page({ searchParams }: paramsProps) {
 
           <div className="flex items-start justify-between">
             <HeadPage
-              title={`Managers (${totalUsers})`}
+              title={`Managers ${
+                !loadingUsers && `(${managersUsers?.length})`
+              } `}
               description="Manage Managers from here."
             />
 
@@ -69,16 +62,17 @@ export default async function Page({ searchParams }: paramsProps) {
         </div>
 
         <CardContent className="w-[390px] sm:w-[550px]  xl:w-full mx-auto">
-          <ManTable
-            searchKey="country"
-            pageNo={page}
-            columns={Mancolumns}
-            totalUsers={totalUsers}
-            data={employee}
-            pageCount={pageCount}
-          />
+          {loadingUsers ? (
+            <div className="flex justify-center items-center">
+              <MainLoading />
+            </div>
+          ) : (
+            <DataManagerTable data={managersUsers} columns={tManagerColumns} />
+          )}
         </CardContent>
       </ScrollArea>
     </>
   );
-}
+};
+
+export default Page;

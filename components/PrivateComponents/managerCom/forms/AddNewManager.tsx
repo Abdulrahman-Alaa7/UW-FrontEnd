@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import * as z from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -30,40 +30,59 @@ import OTP from "../../OTP";
 import { toast } from "sonner";
 import { usePathname } from "next/navigation";
 import { useLocale } from "next-intl";
-import { useMutation } from "@apollo/client";
+import { useMutation, useQuery } from "@apollo/client";
 import { REGISTER_USER } from "../../../../graphql/actions/register.action";
 import MainLoading from "../../../../components/ui/main-loading";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
+import { UPDATE_USER_BY_ID_FOR_CREATORS } from "../../../../graphql/actions/mutaions/updateUserByIdForCreators";
+import { useRouter } from "../../../../navigation";
+import { GET_USER_BY_ID } from "../../../../graphql/actions/queries/getUserById";
 
 type Props = {
   initialData?: any | null;
+  isLoadingUserData?: any | null;
+  userId?: string;
 };
 
-const AddNewManager: React.FC<Props> = ({ initialData }) => {
+const AddNewManager: React.FC<Props> = ({ userId }) => {
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
   const [open, setOpen] = useState(false);
   const path = usePathname();
   const locale = useLocale();
   const [registerUserMutation, { loading }] = useMutation(REGISTER_USER);
-  const [activationToken, setactivationToken] = useState("");
-  const action = initialData ? "Save changes" : "Create";
+  const [updateUserByIdForCreators, { loading: updateUserLoading }] =
+    useMutation(UPDATE_USER_BY_ID_FOR_CREATORS);
+  const router = useRouter();
 
-  const defaultValues = initialData
-    ? initialData
-    : {
-        first_name: "",
-        last_name: "",
-        email: "",
-        password: "",
-        gernder: "",
-        role: `${
-          path == `/${locale}/dashboard/managers/new`
-            ? `Manager`
-            : path == `/${locale}/dashboard/universities/new`
-            ? `University`
-            : `User`
-        }`,
-      };
+  const { data, loading: getUserByIdLoading } = useQuery(GET_USER_BY_ID, {
+    variables: {
+      userId: userId,
+    },
+    onCompleted: () => {
+      setIsLoaded(true);
+    },
+  });
+  const UserData = data?.getUserById.user;
+
+  const action = UserData ? "Save changes" : "Create";
+
+  const defaultValues = {
+    name: UserData?.name || "",
+    email: UserData?.email || "",
+    password: "",
+    gender: UserData?.gender || "",
+    role:
+      UserData?.role ||
+      `${
+        path === `/${locale}/dashboard/managers/new`
+          ? `Manager`
+          : path === `/${locale}/dashboard/universities/new`
+          ? `University`
+          : `User`
+      }`,
+    status: UserData?.status || "active",
+  };
 
   const profileSchema = z.object({
     name: z
@@ -80,7 +99,7 @@ const AddNewManager: React.FC<Props> = ({ initialData }) => {
       .email({
         message: `Not valid email`,
       }),
-    password: initialData
+    password: UserData
       ? z.string().optional()
       : z
           .string()
@@ -114,12 +133,36 @@ const AddNewManager: React.FC<Props> = ({ initialData }) => {
     defaultValues,
   });
 
+  useEffect(() => {
+    if (isLoaded && UserData) {
+      const newValues = {
+        name: UserData.name || "",
+        email: UserData.email || "",
+        password: "",
+        gender: UserData.gender || "",
+        role: UserData.role || defaultValues.role,
+        status: UserData.status || "active",
+      };
+      form.reset(newValues);
+    }
+  }, [UserData, isLoaded]);
+
   const onSubmit = async (data: AddNewUserValues) => {
     try {
-      if (initialData) {
-        // await axios.post(`/api/products/edit-product/${initialData._id}`, data);
-        await console.log("success Updated", data);
+      if (UserData) {
+        const updateUserData: any = {
+          userId: userId,
+          role: data.role,
+          status: data.status,
+        };
+
+        await updateUserByIdForCreators({
+          variables: updateUserData,
+        });
+
         toast.success("User Updated Successfully");
+
+        router.push(`/dashboard/all-users`);
       } else {
         const response = await registerUserMutation({
           variables: data,
@@ -141,206 +184,223 @@ const AddNewManager: React.FC<Props> = ({ initialData }) => {
   return (
     <>
       <OTP isOpen={open} onClose={() => setOpen(false)} setOpen={setOpen} />
-      <Form {...form}>
-        <form
-          onSubmit={form.handleSubmit(onSubmit)}
-          className="space-y-8 w-full"
-        >
-          <div className="md:grid md:grid-cols-3 gap-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Name</FormLabel>
-                  <FormControl>
-                    <Input disabled={loading} placeholder="Name" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="email"
-                      disabled={loading}
-                      placeholder="email@uw.com"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem className={`${initialData && "!hidden"}`}>
-                  <FormLabel>Password</FormLabel>
-                  <FormControl>
-                    <div className="relative">
+      {!isLoaded && UserData ? (
+        <div className="flex justify-center items-center my-6">
+          <MainLoading />
+        </div>
+      ) : (
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="space-y-8 w-full"
+          >
+            <div className="md:grid md:grid-cols-3 gap-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name</FormLabel>
+                    <FormControl>
                       <Input
-                        type={!showPassword ? "password" : "text"}
-                        disabled={loading}
-                        placeholder="password"
+                        disabled={UserData || loading}
+                        placeholder="Name"
                         {...field}
+                        readOnly={UserData}
+                        className={`${getUserByIdLoading && "hidden"}`}
                       />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        className="absolute top-1/2 transform -translate-y-1/2 right-2 z-1 !p-1 rounded-full"
-                        onClick={() => setShowPassword(!showPassword)}
-                      >
-                        {showPassword ? (
-                          <AiOutlineEye
-                            size={25}
-                            className="text-black dark:text-white"
-                          />
-                        ) : (
-                          <AiOutlineEyeInvisible
-                            size={25}
-                            className="text-black dark:text-white"
-                          />
-                        )}
-                      </Button>
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Card className="mt-3 lg:mt-0">
-              <CardContent>
-                <FormField
-                  control={form.control}
-                  name="gender"
-                  render={({ field }) => (
-                    <FormItem className="space-y-3">
-                      <FormLabel>Select a gender</FormLabel>
-                      <FormControl>
-                        <RadioGroup
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                          className="flex flex-col space-y-1"
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="email"
+                        disabled={UserData || loading}
+                        placeholder="email@uw.com"
+                        {...field}
+                        readOnly={UserData}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem className={`${UserData && "!hidden"}`}>
+                    <FormLabel>Password</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Input
+                          type={!showPassword ? "password" : "text"}
+                          placeholder="password"
+                          {...field}
+                          disabled={UserData || loading}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          className="absolute top-1/2 transform -translate-y-1/2 right-2 z-1 !p-1 rounded-full"
+                          onClick={() => setShowPassword(!showPassword)}
                         >
-                          <FormItem className="flex items-center space-x-3 space-y-0">
-                            <FormControl>
-                              <RadioGroupItem value="male" />
-                            </FormControl>
-                            <FormLabel className="font-normal cursor-pointer">
-                              Male
-                            </FormLabel>
-                          </FormItem>
-                          <FormItem className="flex items-center space-x-3 space-y-0">
-                            <FormControl>
-                              <RadioGroupItem value="female" />
-                            </FormControl>
-                            <FormLabel className="font-normal cursor-pointer">
-                              Female
-                            </FormLabel>
-                          </FormItem>
-                          <FormItem className="flex items-center space-x-3 space-y-0">
-                            <FormControl>
-                              <RadioGroupItem value="org" />
-                            </FormControl>
-                            <FormLabel className="font-normal cursor-pointer">
-                              Org
-                            </FormLabel>
-                          </FormItem>
-                        </RadioGroup>
+                          {showPassword ? (
+                            <AiOutlineEye
+                              size={25}
+                              className="text-black dark:text-white"
+                            />
+                          ) : (
+                            <AiOutlineEyeInvisible
+                              size={25}
+                              className="text-black dark:text-white"
+                            />
+                          )}
+                        </Button>
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Card className="mt-3 lg:mt-0">
+                <CardContent>
+                  <FormField
+                    control={form.control}
+                    name="gender"
+                    render={({ field }) => (
+                      <FormItem className="space-y-3">
+                        <FormLabel>Select a gender</FormLabel>
+                        <FormControl>
+                          <RadioGroup
+                            onValueChange={field.onChange}
+                            defaultValue={field.value}
+                            className="flex flex-col space-y-1"
+                            disabled={UserData || loading}
+                            value={UserData && UserData.gender}
+                          >
+                            <FormItem className="flex items-center space-x-3 space-y-0">
+                              <FormControl>
+                                <RadioGroupItem value="male" />
+                              </FormControl>
+                              <FormLabel className="font-normal cursor-pointer">
+                                Male
+                              </FormLabel>
+                            </FormItem>
+                            <FormItem className="flex items-center space-x-3 space-y-0">
+                              <FormControl>
+                                <RadioGroupItem value="female" />
+                              </FormControl>
+                              <FormLabel className="font-normal cursor-pointer">
+                                Female
+                              </FormLabel>
+                            </FormItem>
+                            <FormItem className="flex items-center space-x-3 space-y-0">
+                              <FormControl>
+                                <RadioGroupItem value="org" />
+                              </FormControl>
+                              <FormLabel className="font-normal cursor-pointer">
+                                Org
+                              </FormLabel>
+                            </FormItem>
+                          </RadioGroup>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </CardContent>
+              </Card>
+
+              <FormField
+                control={form.control}
+                name="role"
+                render={({ field }) => (
+                  <FormItem className={`${!UserData && "!hidden"}`}>
+                    <FormLabel>Role</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={(UserData && UserData.role) || field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a role" />
+                        </SelectTrigger>
                       </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </CardContent>
-            </Card>
+                      <SelectContent>
+                        <SelectItem value="Manager">Manager</SelectItem>
+                        <SelectItem value="University">University</SelectItem>
+                        <SelectItem value="Faculty">Faculty</SelectItem>
+                        <SelectItem value="Department">Department</SelectItem>
+                        <SelectItem value="Professor">Professor</SelectItem>
+                        <SelectItem value="Student">Student</SelectItem>
+                        <SelectItem value="User">User</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="role"
-              render={({ field }) => (
-                <FormItem className={`${!initialData && "!hidden"}`}>
-                  <FormLabel>Role</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a role" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="Manager">Manager</SelectItem>
-                      <SelectItem value="University">University</SelectItem>
-                      <SelectItem value="Faculty">Faculty</SelectItem>
-                      <SelectItem value="Department">Department</SelectItem>
-                      <SelectItem value="Professor">Professor</SelectItem>
-                      <SelectItem value="Student">Student</SelectItem>
-                      <SelectItem value="User">User</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem className={`${!UserData && "!hidden"}`}>
+                    <FormLabel>Status</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={
+                        (UserData && UserData.status) || field.value
+                      }
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a Status" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="active" className="text-green-600">
+                          Active
+                        </SelectItem>
+                        <SelectItem value="hold" className={`text-[crimson]`}>
+                          Hold
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-            <FormField
-              control={form.control}
-              name="status"
-              render={({ field }) => (
-                <FormItem className={`${!initialData && "!hidden"}`}>
-                  <FormLabel>Status</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a Status" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="active" className="text-green-600">
-                        Active
-                      </SelectItem>
-                      <SelectItem value="hold" className={`text-[crimson]`}>
-                        Hold
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <br />
-          </div>
-          <Button
-            disabled={loading}
-            className="mx-auto w-[250px] flex justify-center items-center"
-            type="submit"
-          >
-            {loading ? <MainLoading /> : `${action}`}
-          </Button>
-          <FormDescription
-            className={`mx-auto w-[95%] flex justify-center items-center !mt-3 ${
-              initialData && "!hidden"
-            }`}
-          >
-            We will send to your email OTP to activate your account.
-          </FormDescription>
-        </form>
-      </Form>
+              <br />
+            </div>
+            <Button
+              disabled={loading || updateUserLoading}
+              className="mx-auto w-[250px] flex justify-center items-center"
+              type="submit"
+            >
+              {loading || updateUserLoading ? <MainLoading /> : `${action}`}
+            </Button>
+            <FormDescription
+              className={`mx-auto w-[95%] flex justify-center items-center !mt-3 ${
+                UserData && "!hidden"
+              }`}
+            >
+              We will send to your email OTP to activate your account.
+            </FormDescription>
+          </form>
+        </Form>
+      )}
     </>
   );
 };
